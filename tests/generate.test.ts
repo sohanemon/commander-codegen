@@ -24,7 +24,7 @@ describe('generateCli — valid input', () => {
 			/**
 			 * @alias g
 			 * @description Greet someone by name
-			 * @param shout lets shout out
+			 * @option shout lets shout out
 			 */
 			export function greet(name: string, shout?: boolean) {
 				return shout ? name.toUpperCase() : name;
@@ -42,7 +42,7 @@ describe('generateCli — valid input', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Set the log level
-			 * @param level the log level
+			 * @option level the log level
 			 */
 			export function setLevel(level: 'debug' | 'info' | 'error') {
 				return level;
@@ -59,7 +59,7 @@ describe('generateCli — valid input', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Enable feature tags
-			 * @param tags feature tags to enable
+			 * @option tags feature tags to enable
 			 */
 			export function enableTags(tags: ('api' | 'db' | 'cache')[]) {
 				return tags.join(',');
@@ -77,9 +77,9 @@ describe('generateCli — valid input', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Run the build
-			 * @param name build target name
-			 * @param mode build mode
-			 * @param verbose print extra output
+			 * @option name build target name
+			 * @option mode build mode
+			 * @option verbose print extra output
 			 */
 			export function build(name: string, mode: 'dev' | 'prod', verbose: boolean = false) {
 				return \`\${name}:\${mode}:\${verbose}\`;
@@ -98,8 +98,8 @@ describe('generateCli — valid input', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Configure a service
-			 * @param config.name service name
-			 * @param config.mode service mode
+			 * @option config.name service name
+			 * @option config.mode service mode
 			 */
 			export function configureService(config: { name: string; mode: 'active' | 'standby' }) {
 				return \`\${config.name}:\${config.mode}\`;
@@ -118,7 +118,7 @@ describe('generateCli — valid input', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Deploy asynchronously
-			 * @param env target environment
+			 * @option env target environment
 			 */
 			export async function deployAsync(env: 'staging' | 'prod') {
 				return Promise.resolve(\`deployed to \${env}\`);
@@ -132,7 +132,7 @@ describe('generateCli — valid input', () => {
 		expect(content).toContain('await deployAsync(');
 	});
 
-	it('falls back to "name (kind)" when no @param tag exists', () => {
+	it('falls back to "name (kind)" when no @option tag exists', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Undocumented params fallback test
@@ -153,7 +153,7 @@ describe('generateCli — valid input', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Command with examples
-			 * @param name target name
+			 * @option name target name
 			 * @example greet-multi Alice --loud
 			 * @example greet-multi Bob
 			 */
@@ -209,7 +209,7 @@ describe('generateCli — invalid input', () => {
 	it('throws when @description is missing', () => {
 		const cwd = writeFixture(`
 			/**
-			 * @param level the level
+			 * @option level the level
 			 */
 			export function badNoDescription(level: 'a' | 'b') {
 				return level;

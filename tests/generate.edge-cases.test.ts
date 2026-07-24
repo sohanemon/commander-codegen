@@ -23,7 +23,7 @@ describe('leaf type varieties', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Create a user with a numeric ID
-			 * @param id the user id
+			 * @option id the user id
 			 */
 			export function getUser(id: number) {
 				return id;
@@ -41,7 +41,7 @@ describe('leaf type varieties', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Sum a list of numbers
-			 * @param values numbers to sum
+			 * @option values numbers to sum
 			 */
 			export function sum(values: number[]) {
 				return values.reduce((a, b) => a + b, 0);
@@ -59,7 +59,7 @@ describe('leaf type varieties', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Accept items as Array<string>
-			 * @param items list of items
+			 * @option items list of items
 			 */
 			export function collect(items: Array<string>) {
 				return items.join(',');
@@ -76,7 +76,7 @@ describe('leaf type varieties', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Accept scores as Array<number>
-			 * @param scores list of scores
+			 * @option scores list of scores
 			 */
 			export function tally(scores: Array<number>) {
 				return scores.reduce((a, b) => a + b, 0);
@@ -94,7 +94,7 @@ describe('leaf type varieties', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Single-choice mode
-			 * @param mode the only mode
+			 * @option mode the only mode
 			 */
 			export function singleMode(mode: 'default') {
 				return mode;
@@ -111,7 +111,7 @@ describe('leaf type varieties', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Many choices
-			 * @param color pick a color
+			 * @option color pick a color
 			 */
 			export function pickColor(color: 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'orange') {
 				return color;
@@ -129,7 +129,7 @@ describe('leaf type varieties', () => {
 		const cwd = writeFixture(`
 			/**
 		 * @description Toggle debug mode
-		 * @param debug enable debug output
+		 * @option debug enable debug output
 			 */
 			export function toggle(debug: boolean) {
 				return debug;
@@ -149,8 +149,8 @@ describe('optional and default value edge cases', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Optional without default
-			 * @param name the name
-			 * @param title optional title
+			 * @option name the name
+			 * @option title optional title
 			 */
 			export function greet(name: string, title?: string) {
 				return title ? \`\${title} \${name}\` : name;
@@ -170,7 +170,7 @@ describe('optional and default value edge cases', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description String with default
-			 * @param env target environment
+			 * @option env target environment
 			 */
 			export function deploy(env: string = 'production') {
 				return env;
@@ -188,7 +188,7 @@ describe('optional and default value edge cases', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Number with default
-			 * @param count retry count
+			 * @option count retry count
 			 */
 			export function retry(count: number = 3) {
 				return count;
@@ -205,7 +205,7 @@ describe('optional and default value edge cases', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Verbose logging
-			 * @param verbose enable verbose logging
+			 * @option verbose enable verbose logging
 			 */
 			export function log(verbose: boolean = true) {
 				return verbose;
@@ -222,7 +222,7 @@ describe('optional and default value edge cases', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Mode with default
-			 * @param mode execution mode
+			 * @option mode execution mode
 			 */
 			export function run(mode: 'dev' | 'prod' | 'test' = 'dev') {
 				return mode;
@@ -240,7 +240,7 @@ describe('optional and default value edge cases', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Quiet mode
-			 * @param quiet suppress output
+			 * @option quiet suppress output
 			 */
 			export function exec(quiet: boolean = false) {
 				return quiet;
@@ -257,9 +257,9 @@ describe('optional and default value edge cases', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Multi-prompt command
-			 * @param username the username
-			 * @param password the password
-			 * @param host the host address
+			 * @option username the username
+			 * @option password the password
+			 * @option host the host address
 			 */
 			export function login(username: string, password: string, host: string) {
 				return \`\${username}@\${host}\`;
@@ -329,8 +329,8 @@ describe('nested object params', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Optional nested field
-			 * @param config.name the name
-			 * @param config.title optional title
+			 * @option config.name the name
+			 * @option config.title optional title
 			 */
 			export function greet(config: { name: string; title?: string }) {
 				return \`\${config.name} - \${config.title ?? '(no title)'}\`;
@@ -404,9 +404,9 @@ describe('nested object params', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Mixed flat and nested
-			 * @param name the name
-			 * @param config.host the host
-			 * @param config.port the port
+			 * @option name the name
+			 * @option config.host the host
+			 * @option config.port the port
 			 */
 			export function connect(name: string, config: { host: string; port: number }) {
 				return \`\${name}@\${config.host}:\${config.port}\`;
@@ -570,7 +570,7 @@ describe('JSDoc edge cases', () => {
 			/**
 			 * @name custom-command
 			 * @description Overridden command name
-			 * @param value some value
+			 * @option value some value
 			 */
 			export function originalExportName(value: string) {
 				return value;
@@ -588,7 +588,7 @@ describe('JSDoc edge cases', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description A command
-			 * @param val a value
+			 * @option val a value
 			 * @example cmd-one val1
 			 * @example cmd-one val2 --flag
 			 * @example cmd-one val3 sub
@@ -610,7 +610,7 @@ describe('JSDoc edge cases', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Command with empty examples
-			 * @param val a value
+			 * @option val a value
 			 * @example
 			 * @example real-example val
 			 */
@@ -625,12 +625,12 @@ describe('JSDoc edge cases', () => {
 		expect(content).toContain('real-example val');
 	});
 
-	it('@param description with leading dash is stripped', () => {
+	it('@option description with leading dash is stripped', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Param with dash prefix
-			 * @param name - the user name
-			 * @param age - the user age - in years
+			 * @option name - the user name
+			 * @option age - the user age - in years
 			 */
 			export function createUser(name: string, age: number) {
 				return \`\${name} (\${age})\`;
@@ -644,11 +644,11 @@ describe('JSDoc edge cases', () => {
 		expect(content).toContain('"the user age - in years"');
 	});
 
-	it('@param tag with no description is skipped in map', () => {
+	it('@option tag with no description is skipped in map', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description No param description
-			 * @param name
+			 * @option name
 			 */
 			export function bare(name: string) {
 				return name;
@@ -666,7 +666,7 @@ describe('JSDoc edge cases', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description No alias here
-			 * @param val a value
+			 * @option val a value
 			 */
 			export function noAlias(val: string) {
 				return val;
@@ -679,13 +679,13 @@ describe('JSDoc edge cases', () => {
 		expect(content).not.toContain('.alias(');
 	});
 
-	it('@param with dash-separated multi-word description (plain JSDoc style)', () => {
-		// In TypeScript, ts-morph parses @param as JSDocParameterTag.
+	it('@option with dash-separated multi-word description (plain JSDoc style)', () => {
+		// In TypeScript, ts-morph parses @option as JSDocParameterTag.
 		// This tests that descriptions with trailing dashes are preserved correctly.
 		const cwd = writeFixture(`
 			/**
 			 * @description Description with dashes
-			 * @param input input - output - processing
+			 * @option input input - output - processing
 			 */
 			export function process(input: string) {
 				return input;
@@ -697,6 +697,336 @@ describe('JSDoc edge cases', () => {
 
 		// The dash-stripping only handles leading dash
 		expect(content).toContain('input - output - processing');
+	});
+});
+
+describe('argument and option mix', () => {
+	it('one @argument + one @option generates .argument() + .option()', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Copy a file
+			 * @argument source the source path
+			 * @option dest the destination path
+			 */
+			export function copy(source: string, dest: string) {
+				return \`\${source} -> \${dest}\`;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		expect(content).toContain(".argument('[source]'");
+		expect(content).toContain('.option(\'--dest <value>\'');
+	});
+
+	it('multiple @arguments appear in order as positional args', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Move a file
+			 * @argument source the source path
+			 * @argument dest the destination path
+			 */
+			export function move(source: string, dest: string) {
+				return \`\${source} -> \${dest}\`;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		expect(content).toContain(".argument('[source]'");
+		expect(content).toContain(".argument('[dest]'");
+		// Source comes before dest in positional order
+		const sourceIdx = content.indexOf(".argument('[source]'");
+		const destIdx = content.indexOf(".argument('[dest]'");
+		expect(sourceIdx).toBeLessThan(destIdx);
+	});
+
+	it('@argument values flow through positionalArg in action handler', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Read a config file
+			 * @argument file the file path
+			 * @option format output format
+			 */
+			export function read(file: string, format: 'json' | 'yaml' = 'json') {
+				return \`read \${file} as \${format}\`;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		// Action receives positionalArg0 then opts
+		expect(content).toContain('.action(async (positionalArg0, opts) => {');
+		// Values assignment uses positionalArg for the argument
+		expect(content).toContain('file: positionalArg0');
+		expect(content).toContain('format: opts.format');
+		// Argument must NOT be prompted (it comes from CLI position, not interactive)
+		expect(content).not.toContain("name: 'file'");
+		// Optional format with default is NOT prompted
+		expect(content).not.toContain("name: 'format'");
+	});
+
+	it('@argument with leading-dash description strips leading dash', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Process item
+			 * @argument item - the item to process
+			 * @option verbose - enable verbose output
+			 */
+			export function process(item: string, verbose: boolean) {
+				return \`\${item}: \${verbose}\`;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		expect(content).toContain('"the item to process"');
+		expect(content).toContain('"enable verbose output"');
+	});
+
+	it('@argument with dash-separated multi-word description (like @option dash test)', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Transform data
+			 * @argument input input - output - processing
+			 */
+			export function transform(input: string) {
+				return input;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		// Description preserves internal dashes, only leading-dash is stripped
+		expect(content).toContain('input - output - processing');
+	});
+
+	it('required @argument is NOT prompted (comes from positional arg)', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Greet a user
+			 * @argument name the user name
+			 * @option title optional title
+			 */
+			export function greet(name: string, title?: string) {
+				return \`\${title ? title + ' ' : ''}\${name}\`;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		// 'name' is an argument — not in prompt list
+		expect(content).not.toMatch(/name:\s*'name'/);
+		// 'title' is optional — also not prompted
+		expect(content).not.toMatch(/name:\s*'title'/);
+		// But title should still be in values as opts.title
+		expect(content).toContain('title: opts.title');
+	});
+
+	it('@argument with number type produces .argument()', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Set a timeout
+			 * @argument ms timeout in milliseconds
+			 */
+			export function setTimeout(ms: number) {
+				return ms;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		expect(content).toContain(".argument('[ms]'");
+		expect(content).toContain('ms: positionalArg0');
+	});
+
+	it('param with no @option tag defaults to option (not argument)', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Default to option
+			 * @argument name the name
+			 */
+			export function defaultOpt(name: string, verbose: boolean) {
+				return \`\${name}: \${verbose}\`;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		// 'name' is an @argument
+		expect(content).toContain(".argument('[name]'");
+		// 'verbose' has no tag, so defaults to --flag option
+		expect(content).toContain('.option(\'--verbose\'');
+	});
+
+	it('errors: @argument on optional param throws', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Optional as argument
+			 * @argument name the name
+			 */
+			export function bad(name?: string) {
+				return name;
+			}
+		`);
+
+		expect(() => generate({ input: 'index.ts', output: 'out.gen.ts', cwd })).toThrow(
+			/@argument "name" must be a required parameter/
+		);
+	});
+
+	it('errors: @argument on boolean param throws', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Booleans as argument
+			 * @argument flag enable something
+			 */
+			export function bad(flag: boolean) {
+				return flag;
+			}
+		`);
+
+		expect(() => generate({ input: 'index.ts', output: 'out.gen.ts', cwd })).toThrow(
+			/@argument "flag" must be a string or number parameter/
+		);
+	});
+
+	it('errors: @argument on enum param throws', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Enum as argument
+			 * @argument mode the mode
+			 */
+			export function bad(mode: 'a' | 'b') {
+				return mode;
+			}
+		`);
+
+		expect(() => generate({ input: 'index.ts', output: 'out.gen.ts', cwd })).toThrow(
+			/@argument "mode" must be a string or number parameter/
+		);
+	});
+
+	it('errors: @argument on array param throws', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Array as argument
+			 * @argument items the items
+			 */
+			export function bad(items: string[]) {
+				return items;
+			}
+		`);
+
+		expect(() => generate({ input: 'index.ts', output: 'out.gen.ts', cwd })).toThrow(
+			/@argument "items" must be a string or number parameter/
+		);
+	});
+
+	it('errors: same param tagged @argument AND @option throws', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Dual tag conflict
+			 * @argument name the name
+			 * @option name the name
+			 */
+			export function bad(name: string) {
+				return name;
+			}
+		`);
+
+		expect(() => generate({ input: 'index.ts', output: 'out.gen.ts', cwd })).toThrow(
+			/tagged both @argument and @option/
+		);
+	});
+
+	it('errors: @argument that does not match any param throws', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Nonexistent argument
+			 * @argument nonexistent who?
+			 */
+			export function bad(name: string) {
+				return name;
+			}
+		`);
+
+		expect(() => generate({ input: 'index.ts', output: 'out.gen.ts', cwd })).toThrow(
+			/@argument "nonexistent" does not match any top-level parameter/
+		);
+	});
+
+	it('multiple arguments + multiple options produce correct action signature', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Full pipeline
+			 * @argument input input file
+			 * @argument output output file
+			 * @option format output format
+			 * @option verbose enable verbose logging
+			 */
+			export function pipeline(input: string, output: string, format: 'json' | 'yaml' = 'json', verbose: boolean = false) {
+				return \`\${input} -> \${output} (\${format}, verbose=\${verbose})\`;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		// Two positional args, then opts
+		expect(content).toContain('.action(async (positionalArg0, positionalArg1, opts) => {');
+		// Values assignment in correct order
+		expect(content).toContain('input: positionalArg0');
+		expect(content).toContain('output: positionalArg1');
+		expect(content).toContain('format: opts.format');
+		expect(content).toContain('verbose: opts.verbose');
+	});
+
+	it('@argument with custom description is used in .argument()', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Delete a resource
+			 * @argument id the unique resource identifier
+			 */
+			export function del(id: string) {
+				return \`deleted \${id}\`;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		expect(content).toContain('"the unique resource identifier"');
+	});
+
+	it('no @option or @argument tags means everything defaults to --flag option', () => {
+		const cwd = writeFixture(`
+			/**
+			 * @description Default all to option
+			 */
+			export function deploy(env: string, region: string) {
+				return \`\${env}:\${region}\`;
+			}
+		`);
+
+		const result = generate({ input: 'index.ts', output: 'out.gen.ts', cwd });
+		const content = fs.readFileSync(result.outputPath, 'utf-8');
+
+		// No .argument() calls at all
+		expect(content).not.toContain('.argument(');
+		// Both are --flag options
+		expect(content).toContain('.option(\'--env <value>\'');
+		expect(content).toContain('.option(\'--region <value>\'');
+		// Action only receives opts, no positional args
+		expect(content).toContain('.action(async (opts) => {');
 	});
 });
 
@@ -972,7 +1302,7 @@ describe('generated output structure', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Enum command
-			 * @param mode the mode
+			 * @option mode the mode
 			 */
 			export function enumCmd(mode: 'on' | 'off') {
 				return mode;
@@ -989,7 +1319,7 @@ describe('generated output structure', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Basic command
-			 * @param name the name
+			 * @option name the name
 			 */
 			export function basic(name: string) {
 				return name;
@@ -1007,7 +1337,7 @@ describe('generated output structure', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Void return
-			 * @param name the name
+			 * @option name the name
 			 */
 			export function logName(name: string): void {
 				console.log(name);
@@ -1091,7 +1421,7 @@ describe('negative and unexpected input', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description No return annotation
-			 * @param val the value
+			 * @option val the value
 			 */
 			export function echo(val: string) {
 				return val;
@@ -1106,7 +1436,7 @@ describe('negative and unexpected input', () => {
 		const cwd = writeFixture(`
 			/**
 			 * @description Special chars in choices
-			 * @param fmt format string
+			 * @option fmt format string
 			 */
 			export function format(fmt: 'json' | 'yaml' | 'text') {
 				return fmt;

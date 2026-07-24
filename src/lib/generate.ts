@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
 	type FunctionDeclaration,
 	type JSDoc,
+	JSDocParameterTag,
 	Project,
 	SyntaxKind,
 	type Type,
@@ -73,22 +74,24 @@ function parseNameDescriptionTag(raw: string): {
 	name: string;
 	description: string;
 } {
-	const dashSplit = raw.split(/\s+-\s+/);
-	if (dashSplit.length >= 2) {
-		// biome-ignore lint/style/noNonNullAssertion: dashSplit[0] defined — length >= 2 ensures it exists
-		const firstName = dashSplit[0]!;
-		return {
-			name: firstName.trim(),
-			description: dashSplit.slice(1).join(' - ').trim(),
-		};
+	const [firstWord, ...restWords] = raw.split(/\s+/);
+	const name = firstWord ?? '';
+	const rest = restWords.join(' ');
+
+	// Handle optional "- " prefix in the description (a JSDoc convention)
+	// e.g. "name - description" or "input input - output - processing"
+	if (rest.startsWith('- ')) {
+		return { name, description: rest.slice(2).trim() };
 	}
-	const [name, ...rest] = raw.split(/\s+/);
-	return { name: (name ?? '').trim(), description: rest.join(' ').trim() };
+
+	return { name, description: rest.trim() };
 }
 
-// @argument and @option both use "name description" or "name - description"
-// format. @argument marks a param as a positional CLI argument; @option keeps
-// it as a --flag. Both supply the param's --help description in the same tag.
+// @argument and @option both supply per-param descriptions. @argument marks
+// a param as a positional CLI argument; @option keeps it as a --flag.
+//
+// ts-morph parses @argument as JSDocParameterTag (name extracted separately),
+// but @option as a plain JSDocTag (name + description in one comment).
 function getArgOrOptionTagMap(
 	jsDoc: JSDoc | undefined,
 	tagName: 'argument' | 'option',
@@ -98,6 +101,18 @@ function getArgOrOptionTagMap(
 
 	for (const tag of jsDoc.getTags()) {
 		if (tag.getTagName() !== tagName) continue;
+
+		if (tagName === 'argument' && tag instanceof JSDocParameterTag) {
+			// JSDocParameterTag — ts-morph separates name from comment
+			const name = String(tag.getName());
+			let desc = tag.getComment()?.toString().trim() ?? '';
+			// Strip leading "- " convention (e.g. @argument name - the description)
+			if (desc.startsWith('- ')) desc = desc.slice(2).trim();
+			if (name.length > 0 && desc.length > 0) map.set(name, desc);
+			continue;
+		}
+
+		// Plain JSDocTag (e.g. @option) — name is first word, rest is description
 		const raw = tag.getComment()?.toString().trim() ?? '';
 		const { name, description } = parseNameDescriptionTag(raw);
 		if (name.length > 0 && description.length > 0) map.set(name, description);
@@ -480,7 +495,7 @@ function buildCommandBlock(c: CommandInfo): string {
 	const argumentLines = positionalParams.map(buildArgumentLine);
 	const optionLines = flagParams.map(buildOption);
 
-	const requiredParams = c.params.filter((p) => !p.optional);
+	const requiredParams = flagParams.filter((p) => !p.optional);
 	const questionsArray = requiredParams
 		.map(buildInquirerQuestion)
 		.join(',\n\t\t');
