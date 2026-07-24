@@ -3,7 +3,6 @@ import path from 'node:path';
 import {
 	type FunctionDeclaration,
 	type JSDoc,
-	type JSDocParameterTag,
 	Project,
 	SyntaxKind,
 	type Type,
@@ -37,6 +36,7 @@ interface CommandInfo {
 	fnName: string;
 	params: ParamInfo[];
 	isAsync: boolean;
+	argumentParams: string[]; // top-level param names tagged @argument, in declaration order
 }
 
 // NOTE: Throw with export name for traceability
@@ -69,7 +69,10 @@ function getAllTagTexts(jsDoc: JSDoc | undefined, tagName: string): string[] {
 	);
 }
 
-function parseParamTag(raw: string): { name: string; description: string } {
+function parseNameDescriptionTag(raw: string): {
+	name: string;
+	description: string;
+} {
 	const dashSplit = raw.split(/\s+-\s+/);
 	if (dashSplit.length >= 2) {
 		// biome-ignore lint/style/noNonNullAssertion: dashSplit[0] defined — length >= 2 ensures it exists
@@ -83,24 +86,20 @@ function parseParamTag(raw: string): { name: string; description: string } {
 	return { name: (name ?? '').trim(), description: rest.join(' ').trim() };
 }
 
-function getParamTagMap(jsDoc: JSDoc | undefined): Map<string, string> {
+// @argument and @option both use "name description" or "name - description"
+// format. @argument marks a param as a positional CLI argument; @option keeps
+// it as a --flag. Both supply the param's --help description in the same tag.
+function getArgOrOptionTagMap(
+	jsDoc: JSDoc | undefined,
+	tagName: 'argument' | 'option',
+): Map<string, string> {
 	const map = new Map<string, string>();
 	if (!jsDoc) return map;
 
 	for (const tag of jsDoc.getTags()) {
-		if (tag.getTagName() !== 'param') continue;
-
-		if (tag.getKind() === SyntaxKind.JSDocParameterTag) {
-			const paramTag = tag as JSDocParameterTag;
-			const name = paramTag.getName();
-			const comment = paramTag.getComment()?.toString().trim() ?? '';
-			const description = comment.replace(/^-\s*/, '').trim();
-			if (name.length > 0 && description.length > 0) map.set(name, description);
-			continue;
-		}
-
+		if (tag.getTagName() !== tagName) continue;
 		const raw = tag.getComment()?.toString().trim() ?? '';
-		const { name, description } = parseParamTag(raw);
+		const { name, description } = parseNameDescriptionTag(raw);
 		if (name.length > 0 && description.length > 0) map.set(name, description);
 	}
 
@@ -151,13 +150,13 @@ function tryResolveLeafKind(
 			const choices = members.map((m) => String(m.getLiteralValue()));
 			return { kind: 'enum', choices };
 		}
-		// It's a union, but not one made entirely of string literals — this is
-		// explicitly unsupported (e.g. `string | number`), and should fail here
-		// with a clear message rather than falling through to be misread as an
+		// A union, but not one made entirely of string literals — this is
+		// explicitly unsupported (e.g. `string | number`), and fails here with
+		// a clear message rather than falling through to be misread as an
 		// object (unions expose shared prototype members like toString via
 		// getProperties(), which would otherwise trip the call-signature guard
 		// with a confusing error).
-		return null; // falls through to expandParam's own union-specific check below
+		return null;
 	}
 
 	return null;
@@ -212,9 +211,6 @@ function expandParam(
 		);
 	}
 
-	// Safety net: catch types with method-like properties that slipped past
-	// tryResolveLeafKind (this is what let "level.toString" through before
-	// the union-based enum detection replaced regex text matching).
 	for (const prop of props) {
 		const decl = prop.getDeclarations()[0];
 		const propType = decl
@@ -273,7 +269,19 @@ function extractCommandInfo(
 
 	if (!description) fail(exportName, 'missing required @description tag.');
 
-	const paramDescriptions = getParamTagMap(jsDoc);
+	const argMap = getArgOrOptionTagMap(jsDoc, 'argument');
+	const optionMap = getArgOrOptionTagMap(jsDoc, 'option');
+
+	for (const key of argMap.keys()) {
+		if (optionMap.has(key)) {
+			fail(
+				exportName,
+				`parameter "${key}" is tagged both @argument and @option. Use only one.`,
+			);
+		}
+	}
+
+	const paramDescriptions = new Map<string, string>([...argMap, ...optionMap]);
 	const fnParams = fn.getParameters();
 
 	const params: ParamInfo[] = fnParams.flatMap((p) => {
@@ -298,6 +306,34 @@ function extractCommandInfo(
 		return expanded;
 	});
 
+	// @argument tags are validated against the resolved params: must exist,
+	// must be required, must be string/number (enums/booleans/arrays can't
+	// be positional — they stay flags regardless of tagging).
+	const argumentParams = [...argMap.keys()];
+	for (const argName of argumentParams) {
+		const target = params.find(
+			(p) => p.path.length === 1 && p.path[0] === argName,
+		);
+		if (!target) {
+			fail(
+				exportName,
+				`@argument "${argName}" does not match any top-level parameter name.`,
+			);
+		}
+		if (target.optional) {
+			fail(
+				exportName,
+				`@argument "${argName}" must be a required parameter, not optional.`,
+			);
+		}
+		if (target.kind !== 'string' && target.kind !== 'number') {
+			fail(
+				exportName,
+				`@argument "${argName}" must be a string or number parameter. Enums, booleans, and arrays can't be positional.`,
+			);
+		}
+	}
+
 	return {
 		name,
 		alias,
@@ -306,6 +342,7 @@ function extractCommandInfo(
 		fnName: exportName,
 		params,
 		isAsync: fn.isAsync(),
+		argumentParams,
 	};
 }
 
@@ -323,11 +360,6 @@ function camelAccessorName(p: ParamInfo): string {
 		.join('');
 }
 
-// Every param — required or optional, positional-eligible or not — is now
-// generated as a CLI *option*, never a positional .argument(). This is the
-// deliberate design choice that makes per-parameter interactive prompting
-// possible: commander no longer hard-fails before the .action() body runs,
-// so missing required values can be resolved via inquirer instead.
 function buildOption(p: ParamInfo): string {
 	const escapedDesc = JSON.stringify(p.description);
 	const flag = kebabFlagName(p);
@@ -345,6 +377,14 @@ function buildOption(p: ParamInfo): string {
 		return `.addOption(new Option('--${flag} <value>', ${escapedDesc}).choices(${JSON.stringify(p.choices)})${p.defaultValue ? `.default(${p.defaultValue})` : ''})`;
 	}
 	return `.option('--${flag} <value>', ${escapedDesc}${p.defaultValue ? `, ${p.defaultValue}` : ''})`;
+}
+
+function buildArgumentLine(p: ParamInfo): string {
+	// [name] (square brackets, optional at the Commander level) rather than
+	// <name> — this is what lets Commander pass through undefined instead of
+	// hard-failing, so the inquirer prompt fallback still gets a chance to run
+	// when the positional value is omitted.
+	return `.argument('[${kebabFlagName(p)}]', ${JSON.stringify(p.description)})`;
 }
 
 function buildNestedObjectLiteral(
@@ -400,8 +440,6 @@ function buildCallExpression(fnName: string, params: ParamInfo[]): string {
 	return `${fnName}(${args.join(', ')})`;
 }
 
-// Builds the inquirer question object for one param, used only when its
-// value came back undefined after reading CLI options.
 function buildInquirerQuestion(p: ParamInfo): string {
 	const accessor = camelAccessorName(p);
 	const message = JSON.stringify(p.description);
@@ -426,17 +464,35 @@ function buildInquirerQuestion(p: ParamInfo): string {
 }
 
 function buildCommandBlock(c: CommandInfo): string {
-	const optionLines = c.params.map(buildOption);
+	const positionalParams = c.argumentParams
+		.map((argName) =>
+			c.params.find((p) => p.path.length === 1 && p.path[0] === argName),
+		)
+		.filter((p): p is ParamInfo => p !== undefined);
 
-	// Only REQUIRED params get prompted for when missing — optional params
-	// (whether they have a default or not) just pass through as-is.
+	const positionalKeySet = new Set(
+		positionalParams.map((p) => p.path.join('.')),
+	);
+	const flagParams = c.params.filter(
+		(p) => !positionalKeySet.has(p.path.join('.')),
+	);
+
+	const argumentLines = positionalParams.map(buildArgumentLine);
+	const optionLines = flagParams.map(buildOption);
+
 	const requiredParams = c.params.filter((p) => !p.optional);
 	const questionsArray = requiredParams
 		.map(buildInquirerQuestion)
 		.join(',\n\t\t');
 
-	const accessorAssignments = c.params
-		.map((p) => `${camelAccessorName(p)}: opts.${camelAccessorName(p)}`)
+	const valuesAssignments = c.params
+		.map((p) => {
+			const positionalIndex = positionalParams.indexOf(p);
+			if (positionalIndex !== -1) {
+				return `${camelAccessorName(p)}: positionalArg${positionalIndex}`;
+			}
+			return `${camelAccessorName(p)}: opts.${camelAccessorName(p)}`;
+		})
 		.join(', ');
 
 	const callExpr = buildCallExpression(c.fnName, c.params);
@@ -446,22 +502,28 @@ function buildCommandBlock(c: CommandInfo): string {
 		? `\n  .addHelpText('after', ${JSON.stringify(`\nExamples:\n${c.examples.map((e) => `  $ ${e}`).join('\n')}`)})`
 		: '';
 
+	const actionParams = [
+		...positionalParams.map((_, i) => `positionalArg${i}`),
+		'opts',
+	].join(', ');
+
 	const promptBlock =
 		requiredParams.length > 0
 			? `
+    const values = { ${valuesAssignments} };
     const missingQuestions = [
       ${questionsArray}
-    ].filter((q) => (opts as Record<string, unknown>)[q.name] === undefined);
+    ].filter((q) => (values as Record<string, unknown>)[q.name] === undefined);
     const answers = missingQuestions.length > 0 ? await inquirer.prompt(missingQuestions) : {};
-    const resolved = { ${accessorAssignments}, ...answers };`
+    const resolved = { ...values, ...answers };`
 			: `
-    const resolved = { ${accessorAssignments} };`;
+    const resolved = { ${valuesAssignments} };`;
 
 	return `program
   .command('${c.name}')${c.alias ? `\n  .alias('${c.alias}')` : ''}
   .description(${JSON.stringify(c.description)})
-${optionLines.map((l) => `  ${l}`).join('\n')}${exampleHelp}
-  .action(async (opts) => {${promptBlock}
+${[...argumentLines, ...optionLines].map((l) => `  ${l}`).join('\n')}${exampleHelp}
+  .action(async (${actionParams}) => {${promptBlock}
     const result = ${awaitedCall};
     if (result !== undefined) console.log(result);
   });`;
@@ -538,12 +600,12 @@ export function generate(options: GenerateCliOptions): GenerateCliResult {
 		);
 	}
 
-	const commands = [];
+	const commands: CommandInfo[] = [];
 	for (const [exportName, decls] of exportedDecls) {
 		const decl = decls[0];
 		if (!decl || decl.getKind() !== SyntaxKind.FunctionDeclaration) continue;
 		const fn = decl.asKindOrThrow(SyntaxKind.FunctionDeclaration);
-		commands.push(extractCommandInfo(exportName, fn)); // your existing function
+		commands.push(extractCommandInfo(exportName, fn));
 	}
 
 	if (commands.length === 0) {
@@ -552,13 +614,11 @@ export function generate(options: GenerateCliOptions): GenerateCliResult {
 		);
 	}
 
-	// --check stops here — validation already happened via extractCommandInfo,
-	// which throws on any documentation/type problem before this point
 	if (options.checkOnly) {
 		return { commandCount: commands.length, outputPath, wrote: false };
 	}
 
-	const outputContent = buildOutputFile(commands, inputPath, outputPath); // your existing output-building code
+	const outputContent = buildOutputFile(commands, inputPath, outputPath);
 
 	const outputDir = path.dirname(outputPath);
 	fs.mkdirSync(outputDir, { recursive: true });
