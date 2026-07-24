@@ -1,7 +1,7 @@
 {
 	"name": "commander-codegen",
 	"description": "A tool to generate commander code from your tsdoc",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"bin": {
 		"commander-codegen": "./dist/cli.mjs"
 	},

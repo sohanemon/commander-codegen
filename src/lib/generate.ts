@@ -118,6 +118,14 @@ function tryResolveLeafKind(
 	if (typeText === 'number') return { kind: 'number' };
 	if (typeText === 'boolean') return { kind: 'boolean' };
 
+	if (type.isStringLiteral()) {
+		return { kind: 'enum', choices: [String(type.getLiteralValue())] };
+	}
+
+	if (type.isNumberLiteral()) {
+		return { kind: 'enum', choices: [String(type.getLiteralValue())] };
+	}
+
 	if (type.isArray()) {
 		const elementType = type.getArrayElementTypeOrThrow();
 		if (
@@ -514,6 +522,10 @@ export function generate(options: GenerateCliOptions): GenerateCliResult {
 
 	if (!fs.existsSync(inputPath)) {
 		throw new Error(`Input file not found at ${inputPath} (cwd: ${cwd})`);
+	}
+
+	if (!fs.statSync(inputPath).isFile()) {
+		throw new Error(`Input path exists but is not a file: ${inputPath}`);
 	}
 
 	const project = new Project();
